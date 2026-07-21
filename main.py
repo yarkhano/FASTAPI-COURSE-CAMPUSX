@@ -1,13 +1,18 @@
 from fastapi import FastAPI
+import json
+import uvicorn
 
-ap = FastAPI()
+app = FastAPI()
 
 def load_data():
   with open ("patients.json", "r") as f:
-       data = json.laod()
+    data = json.load(f)
     return data
 
 @app.get("/view")
 def view_all():
-  data = load_data()
-return data
+    data = load_data()
+    return data
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
