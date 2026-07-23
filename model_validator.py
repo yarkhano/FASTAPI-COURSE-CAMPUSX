@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr,AnyUrl,Field,field_validator
+from pydantic import BaseModel,AnyUrl,Field,model_validator
 from typing import List,Dict,Optional,Annotated
 
 
@@ -13,17 +13,14 @@ class Patient(BaseModel):
 
 
 
-#field_validator use for custom validation like an email will contain a specific str like after @ buic
+#model_validator use for custom validation of multiple fields
 #by default mode is = after which mean first data coercion is occured than value is passed to the class and vicer versa when mode=before
 
-    @field_validator("email")
-    @classmethod
-    def val_email(cls,value):
-        valid_names = ["buic.com","buik.com"]
-        domain_name = value.split("@")[-1]
-        if domain_name not in valid_names:
-            raise ValueError(f"Invalid email address {value}")
-        return value
+    @model_validator(mode='after')
+    def val_email(self):
+        if self.age > 60 and 'emergency' not in self.contact:
+            raise ValueError("Person having age more than 60 require an emergency contact")
+        return self
 
 
 
@@ -42,7 +39,8 @@ a = {
     'allergies': ['bronchi'],
     'linkedin_url':'https://linkdin.com',
     'contact': {
-        'phone': '03456787659'
+        'phone': '03456787659',
+        'emergency':'4567765'
     }
 }
 patient1 = Patient(**a)
