@@ -1,8 +1,38 @@
 from fastapi import FastAPI,HTTPException,Path,Query
+from pydantic import BaseModel,computed_field,Field
+from typing import Literal,Annotated
 import json
 import uvicorn
 
 app = FastAPI()
+
+
+class Patient(BaseModel):
+    id: Annotated[str,Field(...,description="Patient ID in DB",examples=["P001"])]
+    name:Annotated[str,Field(...,description="Patient Name")]
+    city:Annotated[str,Field(...,description="Patient City")]
+    age: Annotated[int,Field(...,gt=0,lt=120,description="Patient Age")]
+    gender:Annotated[str,Literal['male','female','others'],Field(...,description="Patient Gender")]
+    height:Annotated[float,Field(...,description="Patient Height in meters")]
+    weight:Annotated[float,Field(...,description="Patient Weight in kg")]
+
+    @computed_field()
+    @property
+    def bmi(self)->float:
+        bmi = self.height/(self.weight**2)
+        return bmi
+
+    @computed_field()
+    @property
+    def verdict(self)->float:
+        if self.bmi < 18.5:
+            return 'underwieght'
+        elif self.bmi < 25:
+            return 'overweight'
+        elif self.bmi < 30:
+            return 'obese'
+
+
 
 def load_data():
   with open ("patients.json", "r") as f:
@@ -42,6 +72,9 @@ def sort_patients(sort_by: str = Query(...,description="Sort by height,weight or
     sort_order = True if order == "asc" else False
     sorted_data= sorted(data.values(), key=lambda x:x.get(sort_by,0),reverse=sort_order)
     return sorted_data
+
+
+
 
 
 if __name__ == "__main__":
