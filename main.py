@@ -1,8 +1,9 @@
 from fastapi import FastAPI,HTTPException,Path,Query
 from pydantic import BaseModel,computed_field,Field
 from typing import Literal,Annotated
-import json
+from fastapi.responses import JSONResponse
 import uvicorn
+import json
 
 app = FastAPI()
 
@@ -19,18 +20,20 @@ class Patient(BaseModel):
     @computed_field()
     @property
     def bmi(self)->float:
-        bmi = self.height/(self.weight**2)
+        bmi = self.weight / (self.height ** 2)
         return bmi
 
     @computed_field()
     @property
-    def verdict(self)->float:
+    def verdict(self)->str:
         if self.bmi < 18.5:
-            return 'underwieght'
+            return 'underweight'
         elif self.bmi < 25:
             return 'overweight'
         elif self.bmi < 30:
             return 'obese'
+        else:
+            return "healthy"
 
 
 
@@ -38,6 +41,10 @@ def load_data():
   with open ("patients.json", "r") as f:
     data = json.load(f)
     return data
+
+def write_data(data):
+    with open ("patients.json","w") as f:
+        json.dump(data,f)
 
 #to see all patients data
 @app.get("/view")
@@ -67,14 +74,22 @@ def sort_patients(sort_by: str = Query(...,description="Sort by height,weight or
     if order not in ["asc","desc"]:
         raise HTTPException(status_code=404, detail="order can be ascending or descending")
 
-
-
-    sort_order = True if order == "asc" else False
+    sort_order = False if order == "asc" else True
     sorted_data= sorted(data.values(), key=lambda x:x.get(sort_by,0),reverse=sort_order)
     return sorted_data
 
 
+@app.post("/create")
+def create_Patient(patient: Patient):
+    data = load_data()
+    if patient.id in data:
+        raise HTTPException(status_code=400, detail="Patient already exists")
 
+    else:
+        data[patient.id] = patient.model_dump(exclude=['id'])
+        write_data(data)
+
+    return JSONResponse(status_code=201,content={"message":"Patient created successfully"})
 
 
 if __name__ == "__main__":
